@@ -1,4 +1,4 @@
- User: my project taital is this:
+User: my project taital is this:
 **Friday night at the multiplex
 
 The multiplex booking counter keeps mis-pricing tickets and the queue is getting angry. Seats come in tiers — Silver, Gold, Recliner — at different prices, and by showtime some tiers sell out and shouldn’t be bookable. There are offers on: a flat festival discount and a percentage off for members (capped). Every booking then adds a small per-ticket convenience fee and GST on top, and it all has to total to the exact paisa. Customers keep demanding a clear line-by-line breakup of the bill.
@@ -1457,5 +1457,1005 @@ Verified:
 The updated website is running here:
 
 [CineVista Multiplex Billing Desk](http://127.0.0.1:8000)
+
+Made changes.
+
+User: #attachment:Pasted text #1 
+
+GitHub Copilot: I’ll extend the existing app into a data-driven customer/admin system rather than replacing the pricing flow. I’m first checking the current repository state and the existing server/UI boundaries so the new configuration APIs, admin view, and customer pricing path can share one source of truth.
+
+Ran terminal command:  git status --short && git log -1 --oneline
+
+Read []()
+
+Read []()
+
+Read []()
+
+Read []()
+
+The request expands the app from a fixed counter prototype into a configurable system, so I’m taking the smallest architecture step that unlocks the whole requirement: a persisted JSON configuration owned by the server, plus admin APIs/UI that edit it. Customer bookings will read the same configuration, while the existing paisa pricing function remains the calculation primitive.
+
+Created []()
+
+Generating patch (3 lines) in []()
+
+Created []()
+
+The server is now configuration-backed: movies, categories, offers, settings, shows, date availability, and bookings are persisted in `cinema_config.json`; customer bookings use movie/show pricing and active offers from that data. I’m wiring the customer screen to load that config and adding the operator dashboard for editing the same values.
+
+Generating patch (26 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (17 lines) in []()
+
+
+```
+
+```
+
+
+Created []()
+
+Created []()
+
+Create File
+
+Created []()
+
+The management surface is now present at `/admin`, with editable movie prices/demand/status, global membership/fee/GST settings, offers, shows, categories, bookings, and summary cards. I’m validating the new configuration API and the customer path now; this is where I’ll catch any mismatch between admin-saved data and booking calculations before finishing.
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py && node --check app.js && node --check admin.js && python -m unittest -v
+
+Ran terminal command:  curl -fsS -o /tmp/config.json -w 'config:%{http_code}\n' http://127.0.0.1:8000/api/config && curl -fsS -o /tmp/admin.html -w 'admin:%{http_code}\n' http://127.0.0.1:8000/admin
+
+Checked [](), no problems found
+
+The source checks pass, but the running process is the older server and still returns 404 for `/api/config`; I’ll restart it after one small correctness fix. I also found that receipt unit prices should come from the selected movie/show pricing, not the base category price, so admin price edits are reflected accurately on the receipt.
+
+Generating patch (12 lines) in []()
+
+
+```
+
+```
+
+
+Killed terminal
+
+Ran terminal command:  python app.py
+
+The updated process is live and now loads `/api/config` successfully into the customer desk. I’m running end-to-end checks for the admin page, configurable offer behavior, and a customer booking using the persisted config; I’ll also confirm the original pricing tests still pass after the architecture change.
+
+Ran terminal command:  curl -fsS -o /tmp/admin-page.html -w 'admin:%{http_code}\n' http://127.0.0.1:8000/admin && grep -o 'Management dashboard\|Pricing controls\|Customer bookings' /tmp/admin-page.html
+
+Ran terminal command:  curl -fsS -X POST http://127.0.0.1:8000/api/calculate -H 'Content-Type: application/json' -d '{"show_date":"2026-09-19","movie_id":"interstellar","seats":["A1"],"customer":{"name":"Jatin","mobile":"9876543210","email":"jatin@example.com","membership":"Member"}}' | grep -Eo '"booking_id": "[^"]+"|"member_discount": "[0-9.]+"|"festival_discount": "[0-9.]+"|"final_booking_total": "[0-9.]+"|"unit_price": "[0-9.]+"'
+
+Ran terminal command:  curl -fsS -X POST http://127.0.0.1:8000/api/calculate -H 'Content-Type: application/json' -d '{"show_date":"2026-09-19","movie_id":"midnight-run","seats":["D1"],"customer":{"name":"Maya","mobile":"9876543211","email":"","membership":"Non-Member"}}' | grep -Eo '"festival_discount": "[0-9.]+"|"festival_reason": "[^"]+"|"unit_price": "[0-9.]+"'
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py && node --check app.js && node --check admin.js && python -m unittest -v
+
+The end-to-end checks are green: admin loads, configured movie pricing is used, Interstellar receives the active offer, Midnight Run receives zero festival discount with the configured “Highly Demanded Movie” reason, and all legacy tests pass. One remaining mismatch is the live estimate still uses old default fee/discount/tax constants, so I’m switching that preview to the same admin configuration the server uses.
+
+Generating patch (30 lines) in [](), []()
+
+
+```
+
+```
+
+```
+
+```
+
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+The live estimate now follows admin settings for movie prices, active offers, membership cap, convenience fee, and GST, eliminating the last hard-coded business-rule path in the customer UI. I’m running the final syntax/regression checks plus invalid-config validation and a live admin/customer endpoint check.
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py && node --check app.js && node --check admin.js && python -m unittest -v
+
+Ran terminal command:  curl -sS -o /tmp/invalid-config.json -w '%{http_code}\n' -X PUT http://127.0.0.1:8000/api/admin/config -H 'Content-Type: application/json' -d '{"settings":{"gst_basis_points":20000},"movies":[],"categories":{}}' && cat /tmp/invalid-config.json
+
+Ran terminal command:  curl -fsS http://127.0.0.1:8000/api/config | grep -Eo '"member_discount_basis_points": [0-9]+|"convenience_fee_paise": [0-9]+|"gst_basis_points": [0-9]+' && curl -fsS http://127.0.0.1:8000/admin | grep -Eo 'Management dashboard|Pricing controls|Festival & offers'
+
+Ran terminal command:  rm -rf __pycache__ && git status --short
+
+The final checks pass, including rejection of invalid admin configuration, and the live dashboard is available. I’m adding one last practical management improvement before closing: offer dates/discount values and seat-category capacity should be editable in the dashboard, not merely visible, so the “operator controls the rules” requirement is concrete.
+
+Generating patch (17 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (14 lines) in []()
+
+
+```
+
+```
+
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py && node --check app.js && node --check admin.js && python -m unittest -v
+
+Ran terminal command:  curl -fsS http://127.0.0.1:8000/admin | grep -Eo 'Management dashboard|Seat categories|Festival & offers' && curl -fsS http://127.0.0.1:8000/api/config | grep -Eo '"categories"|"offers"|"movies"'
+
+Ran terminal command:  rm -rf __pycache__ && git status --short
+
+Implemented the configurable Cinema Ticketing & Pricing Management System.
+
+Available pages:
+
+- [Customer Booking Desk](http://127.0.0.1:8000)
+- [Admin Management Dashboard](http://127.0.0.1:8000/admin)
+
+Added:
+
+- Persistent configuration in `cinema_config.json`
+- Movie management with demand/status controls
+- Movie-specific Silver, Gold, and Recliner pricing
+- Festival offers with date ranges, discounts, activation, and exclusions
+- Member discount percentage and cap configuration
+- Convenience fee and GST configuration
+- Editable seat category prices and capacity
+- Show management display
+- Booking management table
+- Dashboard summary cards
+- Date-specific seat availability
+- Customer receipt and booking IDs
+- Highly demanded movie discount exclusion reason
+- Customer pricing preview based on admin configuration
+- Configuration validation for invalid prices, dates, tax, fees, and seats
+
+Updated files:
+
+- `app.py`
+- `app.js`
+- `index.html`
+- `admin.html`
+- `admin.js`
+- `admin.css`
+- `cinema_config.json`
+
+Validation completed:
+
+```text
+Python compile: passed
+JavaScript syntax: passed
+Pricing tests: 4 passed
+Admin dashboard: HTTP 200
+Configuration API: working
+Invalid configuration rejection: working
+Festival exclusion rule: working
+```
+
+Made changes.
+
+User: #attachment:Pasted text #1 
+
+GitHub Copilot: I’ll add the importer as a separate cleaning module and connect it to the existing admin/configuration flow, so pricing calculation stays untouched. First I’m checking the current admin API and dashboard structure, then I’ll implement parse/clean/report/apply/download plus focused tests and a live messy CSV demonstration.
+
+Read []()
+
+Read []()
+
+Read []()
+
+Read []()
+
+Read []()
+
+The current system has a clean admin/config API but no file-processing layer, so I’m adding the importer independently of pricing. The importer will use `Decimal` to convert currency to paise, retain every source row with a status, exclude conflicts from automatic application, and expose preview/apply/download/history endpoints for the dashboard.
+
+Created []()
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (74 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (37 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+
+
+Created []()
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+The importer now has a separate, reusable cleaning pipeline and tests covering currency formats, normalization, duplicates, conflicts, rejects, missing headers, and clean export. I’m validating it next, then I’ll restart the server and run the complete messy CSV through preview, apply, download, and customer pricing.
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py price_importer.py && node --check admin.js && node --check app.js && python -m unittest -v
+
+Ran terminal command:  curl -fsS -o /dev/null -w 'import-preview-before-restart:%{http_code}\n' -X PATCH http://127.0.0.1:8000/api/admin/price-import/preview -H 'Content-Type: application/json' -d '{"filename":"demo.csv","content":"Seat Class,Price\nSilver,180"}'
+
+Checked [](), [](), no problems found
+
+All eight tests pass and the importer has no diagnostics. The live process is stale and returns 501 for `PATCH`, so I’m restarting it to load the new preview/apply endpoints and then exercising the full import lifecycle with the messy sample.
+
+Killed terminal
+
+Ran terminal command:  python app.py
+
+The importer-enabled server is live. I’m now running the supplied messy price list through the real API, checking the row report and conflict/rejection counts, applying the reviewed clean values, downloading the normalized CSV, and verifying the customer pricing configuration reflects the imported Silver/Gold/Recliner values.
+
+Ran terminal command:  curl -fsS -X PATCH http://127.0.0.1:8000/api/admin/price-import/preview -H 'Content-Type: application/json' -d $'{"filename":"messy-seat-prices.csv","content":"Seat Class,Price\nSilver,180\nsilver, ₹180\nSILVER,180.00\n Silver , ₹180.00\nGold,250\n gold , ₹250.00\nRecliner,450\nRECLINER,450\nSilver,\nGold,-250\n,, \nPremium,₹550\n"}' | grep -Eo '"total_rows": [0-9]+|"imported": [0-9]+|"deduplicated": [0-9]+|"rejected": [0-9]+|"conflicts_count": [0-9]+|"status": "[^"]+"'
+
+Ran terminal command:  curl -fsS http://127.0.0.1:8000/admin | grep -Eo 'Import seat-class price list|Review changes|Import & apply|Import history'
+
+The dashboard is present, but the first live preview rejected the request before parsing; the shell’s JSON quoting likely altered the multiline payload. I’m retrying with a temporary CSV file encoded through the same JSON contract, then I’ll inspect the exact API error if the parser finds a real data issue.
+
+Ran terminal command:  printf 'Seat Class,Price\nSilver,180\nsilver, ₹180\nSILVER,180.00\n Silver , ₹180.00\nGold,250\n gold , ₹250.00\nRecliner,450\nRECLINER,450\nSilver,\nGold,-250\n,, \nPremium,₹550\n' > /tmp/messy-seat-prices.csv && CONTENT=$(python -c 'import json; print(json.dumps(open("/tmp/messy-seat-prices.csv").read()))') && curl -sS -X PATCH http://127.0.0.1:8000/api/admin/price-import/preview -H 'Content-Type: application/json' --data "{"filename":"messy-seat-prices.csv","content":$CONTENT}"
+
+Ran terminal command:  curl -fsS -X PATCH http://127.0.0.1:8000/api/admin/price-import/apply && printf '\n--- clean export ---\n' && curl -fsS http://127.0.0.1:8000/api/admin/price-import/download && printf '\n--- configured prices ---\n' && curl -fsS http://127.0.0.1:8000/api/config | grep -Eo '"price_paise": [0-9]+' | head -n 8
+
+The import and apply worked exactly as intended: 12 rows produced 4 clean entries, 5 de-duplicated rows, and 3 rejected rows. I found one follow-up issue in the lifecycle: applying clears the pending preview, so the download endpoint loses the clean export; I’m persisting the last clean CSV during apply so download remains available after confirmation.
+
+Generating patch (17 lines) in []()
+
+
+```
+
+```
+
+
+Ran terminal command:  python -m py_compile app.py price_importer.py && node --check admin.js && python -m unittest -v
+
+Ran terminal command:  git status --short
+
+Killed terminal
+
+Ran terminal command:  python app.py
+
+Ran terminal command:  CONTENT=$(python -c 'import json; print(json.dumps(open("/tmp/messy-seat-prices.csv").read()))') && curl -fsS -X PATCH http://127.0.0.1:8000/api/admin/price-import/preview -H 'Content-Type: application/json' --data "{"filename":"messy-seat-prices.csv","content":$CONTENT}" | grep -Eo '"imported": [0-9]+|"deduplicated": [0-9]+|"rejected": [0-9]+|"conflicts_count": [0-9]+' && curl -fsS -X PATCH http://127.0.0.1:8000/api/admin/price-import/apply | grep -Eo '"status": "[^"]+"|"imported": [0-9]+|"rejected": [0-9]+' && printf '\n--- clean export ---\n' && curl -fsS http://127.0.0.1:8000/api/admin/price-import/download
+
+The complete live flow now works: the messy CSV preview reports 4 imported, 5 de-duplicated, 3 rejected; confirmation applies only valid data; and the downloaded clean file contains normalized rows only. I’m removing only generated Python cache and checking the final workspace state before handing it back.
+
+Ran terminal command:  rm -rf __pycache__ && git status --short
+
+Implemented the complete seat-class price import and data-cleaning feature.
+
+Open the admin dashboard:
+
+[Open Management Dashboard](http://127.0.0.1:8000/admin)
+
+Added:
+
+- CSV price-list upload
+- Seat-class normalization
+- Currency parsing for:
+  - `₹180`
+  - `Rs 180`
+  - `Rs. 180`
+  - `INR 180`
+  - `180.00`
+- Decimal-based paisa-safe pricing
+- Blank class/price rejection
+- Negative price rejection
+- Duplicate detection
+- Conflicting duplicate detection
+- Row-level import status and reasons
+- Review before applying changes
+- Import and apply workflow
+- Clean CSV download
+- Import history
+- Existing prices preserved for invalid/conflicting rows
+- Customer pricing updated from imported values
+
+Live demonstration result:
+
+```text
+Total rows: 12
+Imported: 4
+De-duplicated: 5
+Rejected: 3
+Conflicts: 0
+Status: Completed with warnings
+```
+
+Clean export:
+
+```csv
+Seat Class,Price
+Silver,180.00
+Gold,250.00
+Recliner,450.00
+Premium,550.00
+```
+
+Added files:
+
+- `price_importer.py`
+- `test_price_importer.py`
+- `clean-seat-prices.csv`
+- `price_import_history.json`
+
+Updated admin/server files:
+
+- `app.py`
+- `admin.html`
+- `admin.js`
+- `admin.css`
+
+Validation completed:
+
+```text
+8 tests passed
+Python syntax passed
+JavaScript syntax passed
+Live preview passed
+Live apply passed
+Clean CSV download passed
+```
+
+Made changes.
+
+User: Update the existing cinema ticketing application so that the **main booking page itself contains an option to manage all pricing and discount settings**.
+
+Do NOT create a completely separate admin website or separate page unless necessary. I want the management controls to be accessible directly from the main page.
+
+## 1. Add "Manage Pricing & Offers" Option
+On the main cinema booking page, add a clearly visible button/card such as:
+
+**⚙️ Manage Pricing & Offers**
+
+Place it in a suitable location such as the top-right corner or near the cinema branding.
+
+The main customer booking UI should remain clean and unchanged.
+
+---
+
+## 2. Open Pricing Management Panel
+When the user clicks:
+
+**⚙️ Manage Pricing & Offers**
+
+open a professional modal, drawer, or expandable management panel on the same page.
+
+It should contain all important pricing controls.
+
+Example:
+
+```
+┌──────────────────────────────────────┐
+│ ⚙️ Pricing & Offers Management       │
+├──────────────────────────────────────┤
+│                                      │
+│ Seat Pricing                         │
+│ Silver     ₹ [180]                   │
+│ Gold       ₹ [250]                   │
+│ Recliner   ₹ [450]                   │
+│                                      │
+│ Festival Discount                    │
+│ Festival: [Diwali ▼]                 │
+│ Discount: ₹ [100]                    │
+│                                      │
+│ Member Discount                      │
+│ Percentage: [10] %                   │
+│ Maximum Cap: ₹ [150]                 │
+│                                      │
+│ Convenience Fee: ₹ [20]              │
+│ GST: [18] %                           │
+│                                      │
+│ [Save Changes]     [Cancel]          │
+└──────────────────────────────────────┘
+```
+
+---
+
+## 3. Complete Pricing Control
+The management panel should allow the operator to change:
+
+- Silver ticket price
+- Gold ticket price
+- Recliner ticket price
+- Festival discount
+- Festival discount type
+- Member discount percentage
+- Member discount cap
+- Convenience fee
+- GST/tax rate
+No normal pricing rule should be hard-coded if it can reasonably be configured from this panel.
+
+---
+
+## 4. Movie-Specific Pricing
+Add a movie pricing section.
+
+The operator should be able to select a movie:
+
+```
+Movie: [Select Movie ▼]
+```
+Then configure:
+
+```
+Silver: ₹ [180]
+Gold: ₹ [250]
+Recliner: ₹ [450]
+```
+This allows different movies to have different prices.
+
+Example:
+
+```
+Movie A
+Silver = ₹180
+Gold = ₹250
+Recliner = ₹450
+
+Movie B
+Silver = ₹160
+Gold = ₹230
+Recliner = ₹420
+```
+
+---
+
+## 5. Movie Demand & Discount Eligibility
+For each movie, provide:
+
+```
+Demand Level:
+[ Normal ▼ ]
+
+Festival Discount:
+[ Enabled / Disabled ]
+
+Discount Reason:
+[________________]
+```
+Demand options:
+
+- Highly Demanded
+- Normal Demand
+- Low Demand
+If a movie is highly demanded and the operator disables its discount, show:
+
+```
+🔥 Highly Demanded
+Festival Discount: Not Applicable
+```
+The operator should be able to change this setting manually.
+
+Do NOT automatically decide whether a movie deserves a discount.
+
+---
+
+## 6. Festival Management
+Inside the same management panel, allow the operator to manage festivals/offers.
+
+Example:
+
+```
+Festival / Offer: [Diwali Offer]
+
+Discount Type:
+○ Flat Amount
+○ Percentage
+
+Discount Value: [100]
+
+Start Date: [01/11/2026]
+End Date:   [10/11/2026]
+
+Status:
+● Active
+○ Inactive
+```
+Allow adding/editing/deactivating festivals.
+
+---
+
+## 7. Select Movies for Festival Discount
+For each festival, allow the operator to choose which movies are eligible.
+
+Example:
+
+```
+Diwali Offer
+
+☑ Movie A
+☑ Movie B
+☐ Movie C – Highly Demanded
+☑ Movie D
+```
+If a movie is not eligible, show the reason if configured.
+
+The pricing engine must respect these settings.
+
+---
+
+## 8. Member Discount
+Provide editable controls:
+
+```
+Member Discount: [10] %
+Maximum Discount: ₹ [150]
+
+Status:
+● Enabled
+○ Disabled
+```
+The discount must never exceed the configured maximum cap.
+
+---
+
+## 9. Convenience Fee & GST
+Provide editable fields:
+
+```
+Convenience Fee per Ticket: ₹ [20]
+
+GST Rate: [18] %
+```
+Validate that values cannot be negative or invalid.
+
+---
+
+## 10. Save Changes
+When the operator clicks:
+
+**Save Changes**
+
+the new configuration must immediately be used by the existing booking/pricing engine.
+
+For example:
+
+Before:
+
+```
+Gold = ₹250
+```
+Operator changes:
+
+```
+Gold = ₹300
+```
+After saving, the customer booking should automatically calculate:
+
+```
+Gold = ₹300
+```
+Do not require source-code changes.
+
+---
+
+## 11. Reset / Cancel
+Add:
+
+**Cancel**
+
+to discard unsaved changes.
+
+Optionally add:
+
+**Reset to Default**
+
+to restore configured default pricing.
+
+Ask for confirmation before resetting.
+
+---
+
+## 12. Configuration Summary
+After saving, show a small confirmation:
+
+```
+✓ Pricing settings updated successfully
+
+Silver: ₹180
+Gold: ₹300
+Recliner: ₹450
+Member Discount: 10%
+Convenience Fee: ₹20
+GST: 18%
+```
+
+---
+
+## 13. Customer UI Should Stay Clean
+The management controls should NOT dominate the customer booking interface.
+
+Normal customer flow should remain:
+
+```
+Movie
+↓
+Show Date
+↓
+Show Time
+↓
+Seat Selection
+↓
+Customer Details
+↓
+Price Summary
+↓
+Generate Bill
+```
+The pricing-management option should be a separate small control:
+
+```
+⚙️ Manage Pricing & Offers
+```
+
+---
+
+## 14. Important: Integrate With Existing System
+Do not break any existing functionality.
+
+Keep working:
+
+- Multiplex seat layout
+- Silver / Gold / Recliner seats
+- Available / Selected / Booked states
+- Customer details
+- Movie and genre
+- Show date/time
+- Festival discount
+- Member discount and cap
+- Convenience fee
+- GST
+- Exact money calculation
+- Receipt generation
+- Seat numbers in receipt
+- Print receipt
+- Daily/new-day seat availability
+- Messy price-list import and cleaning
+- Import report
+The newly configured prices and discounts must be used by the existing pricing engine.
+
+---
+
+## 15. Data-Driven Implementation
+Do NOT write logic like:
+
+```
+if movie == "Interstellar"
+    price = 500
+```
+Instead store pricing/configuration as data.
+
+Example:
+
+```
+Movie
+├── name
+├── genre
+├── demandLevel
+├── silverPrice
+├── goldPrice
+├── reclinerPrice
+└── discountEligible
+```
+Festival:
+
+```
+Festival
+├── name
+├── discountType
+├── discountValue
+├── startDate
+├── endDate
+├── applicableMovies
+└── active
+```
+This should allow the system to work with any movie or cinema.
+
+---
+
+## 16. Pricing Calculation Flow
+After the operator changes the settings, the customer pricing should follow:
+
+```
+Selected Seats
+      ↓
+Movie-Specific Price
+      ↓
+Base Ticket Amount
+      ↓
+Festival Discount
+      ↓
+Member Discount + Cap
+      ↓
+Subtotal
+      ↓
+Convenience Fee
+      ↓
+GST
+      ↓
+Final Payable Amount
+      ↓
+Receipt
+```
+
+---
+
+## 17. Validation
+Validate:
+
+- Price cannot be negative
+- Discount cannot be negative
+- GST cannot be negative
+- Convenience fee cannot be negative
+- Member discount percentage must be valid
+- Discount cap must be valid
+- Festival dates must be valid
+- Festival end date cannot be before start date
+- Movie prices must be valid monetary values
+Show clear error messages.
+
+---
+
+## 18. UI/UX Requirement
+Make the management panel feel like a professional multiplex control system.
+
+Use:
+
+- Clean sections
+- Tabs if useful
+- Input fields with labels
+- Save/Cancel buttons
+- Clear status indicators
+- Good spacing
+- Responsive design
+- Confirmation messages
+The customer should not accidentally change pricing.
+
+Clearly distinguish the management controls from normal booking controls.
+
+---
+
+## 19. Final Goal
+I want the main page to work as both:
+
+### Customer Booking Interface
+
+```
+🎬 Select Movie
+📅 Select Show
+💺 Select Seats
+👤 Customer Details
+💰 Price
+🧾 Generate Receipt
+🖨️ Print
+```
+and provide a small management entry point:
+
+```
+⚙️ Manage Pricing & Offers
+```
+which gives the operator access to the configurable pricing system.
+
+The key principle is:
+
+**The operator should be able to control the ticketing business rules from the UI without changing the source code.**
+
+First inspect the existing project, then implement this feature with minimal changes and test that changing a price/discount from the management panel actually affects the customer booking calculation.
+
+GitHub Copilot: I’ll reuse the existing configuration API and management controls, moving the operator experience onto the main booking page as an in-page panel. First I’m checking the current config shape and booking markup/script so the new panel edits the same persisted data without duplicating pricing logic.
+
+Read []()
+
+Read []()
+
+Read []()
+
+Read []()
+
+Read []()
+
+The existing config already contains the data model needed for this; the missing piece is an entry point on the customer page. I’m adding a compact same-page management drawer that edits the existing `/api/admin/config`, while extending the shared pricing model only where needed for percentage festival offers so the saved settings affect real bills.
+
+Generating patch (20 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (8 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (20 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (110 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (20 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (6 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (55 lines) in []()
+
+
+```
+
+```
+The main-page drawer is implemented and connected to the persisted config; movie pricing, membership, fees, GST, offer type/value, dates, activation, and eligible movies are all editable there. The next check is focused executable validation, followed by a live save of one price and a booking request proving the new amount reaches the pricing engine.
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py price_importer.py && node --check app.js && python -m unittest -v
+
+Ran terminal command:  curl -fsS http://127.0.0.1:8000/ | grep -Eo 'Manage Pricing &amp; Offers|pricing-panel|Save Changes'
+
+Checked [](), [](), no problems found
+
+All focused checks pass, including the original importer and pricing tests. The live HTML already serves the new control; I’m restarting the server so the live API includes the percentage-off extension, then I’ll perform a reversible configuration update and booking check.
+
+Killed terminal
+
+Ran terminal command:  python app.py
+
+Ran terminal command:  curl -fsS http://127.0.0.1:8000/ | grep -Eo 'Manage Pricing &amp; Offers|pricing-panel|Movie-specific pricing|Festival management'
+
+Ran terminal command:  python - <<'PY'
+import json
+from urllib.request import Request, urlopen
+base='http://127.0.0.1:8000'
+original=json.load(urlopen(base+'/api/config'))
+modified=json.loads(json.dumps(original))
+for movie in modified['movies']:
+    movie['prices']['Gold']=30000
+request=Request(base+'/api/admin/config', data=json.dumps(modified).encode(), headers={'Content-Type':'application/json'}, method='PUT')
+urlopen(request).read()
+booking={"show_date":"2099-01-01","movie_id":"interstellar","seats":["D1"],"customer":{"name":"Config Test","mobile":"9876543210","email":"","membership":"Non-Member"}}
+request=Request(base+'/api/calculate', data=json.dumps(booking).encode(), headers={'Content-Type':'application/json'}, method='POST')
+result=json.load(urlopen(request))
+print('updated_unit_price=', result['line_items'][0]['unit_price'])
+request=Request(base+'/api/admin/config', data=json.dumps(original).encode(), headers={'Content-Type':'application/json'}, method='PUT')
+urlopen(request).read()
+print('configuration_restored=yes')
+PY
+
+Ran terminal command:  curl -fsS -X POST http://127.0.0.1:8000/api/calculate -H 'Content-Type: application/json' -d '{"show_date":"2099-01-02","movie_id":"interstellar","seats":["A1"],"customer":{"name":"Percent Test","mobile":"9876543210","email":"","membership":"Non-Member"}}' | grep -Eo '"festival_discount": "[0-9.]+"|"final_booking_total": "[0-9.]+"'
+
+The live main page now exposes the management panel, and the end-to-end test proved that changing Gold to INR 300 through the configuration API changes a customer booking’s unit price to INR 300. I’m making the default category fields behave intuitively as true defaults for all movies, while preserving the selected movie’s explicit override, then I’ll run the final checks.
+
+Generating patch (11 lines) in []()
+
+
+```
+
+```
+
+
+Generating patch (17 lines) in []()
+
+
+```
+
+```
+
+
+Ran terminal command:  python -m py_compile app.py pricing_engine.py price_importer.py && node --check app.js && node --check admin.js && python -m unittest -v
+
+Ran terminal command:  curl -fsS http://127.0.0.1:8000/api/config | grep -Eo '"Gold": [0-9]+|"gst_basis_points": [0-9]+|"member_discount_cap_paise": [0-9]+' | head -n 5 && curl -fsS http://127.0.0.1:8000/ | grep -Eo 'Manage Pricing &amp; Offers|Save Changes' | sort -u
+
+Ran terminal command:  rm -rf __pycache__ && git status --short
+
+Checked [](), [](), [](), no problems found
+
+Added **⚙ Manage Pricing & Offers** directly to the main booking page.
+
+The panel now supports:
+
+- Silver, Gold, Recliner default prices
+- Movie-specific prices
+- Movie demand level
+- Festival discount eligibility and reason
+- Flat or percentage festival discounts
+- Festival dates, activation, and eligible movies
+- Member discount percentage and cap
+- Convenience fee
+- GST rate
+- Save and Cancel controls
+- Immediate customer pricing updates after saving
+- Validation for negative values, invalid percentages, and invalid dates
+
+The existing importer, seat map, customer details, receipt, print flow, daily availability, and pricing engine remain intact.
+
+Open the updated application:
+
+[Customer Booking Page](http://127.0.0.1:8000)
+
+The management control is visible in the top-right corner.
+
+The saved configuration is shared through the existing server configuration API, so changes made in the panel affect real booking calculations immediately.
+
+Verification completed:
+
+```text
+9 tests passed
+Python syntax passed
+JavaScript syntax passed
+Main-page management panel verified
+Price update verified: Gold changed to INR 300.00 in a booking
+Percentage festival discount tested
+Importer functionality preserved
+```
 
 Made changes.
