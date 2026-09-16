@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CineVista Multiplex | Billing Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="CineVista billing desk home">
+        <span class="brand-mark">C</span>
+        <span>
+          <strong>CINEVISTA</strong>
+          <small>MULTIPLEX / BILLING DESK</small>
+        </span>
+      </a>
+      <div class="status"><span class="status-dot"></span> Counter online</div>
+    </header>
+
+    <section class="intro">
+      <div>
+        <p class="eyebrow">Friday night at the multiplex</p>
+        <h1>Build a booking.<br><em>Trust the total.</em></h1>
+        <p class="intro-copy">A clean, paisa-accurate receipt from seat selection to final payment.</p>
+      </div>
+      <div class="flow-note">
+        <span>01</span> seats
+        <span>02</span> offers
+        <span>03</span> tax
+        <span>04</span> receipt
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Booking calculator">
+      <div class="booking-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Tonight's screening</p>
+            <h2>Build your booking</h2>
+          </div>
+            <span class="date-chip">FRI · 20:30</span>
+        </div>
+
+          <label class="movie-picker">
+            <span class="field-label">Choose a movie</span>
+            <select id="movie">
+              <option value="interstellar">Interstellar · Sci-Fi · 7:30 PM</option>
+              <option value="midnight-run">Midnight Run · Thriller · 9:45 PM</option>
+              <option value="the-last-laugh">The Last Laugh · Comedy · 6:15 PM</option>
+            </select>
+          </label>
+
+        <section class="customer-card" aria-labelledby="customer-heading">
+          <div class="section-heading"><div><p class="eyebrow">Before we seat you</p><h3 id="customer-heading">Customer details</h3></div><span class="required-note">Required fields *</span></div>
+          <div class="customer-grid">
+            <label><span>Full name *</span><input id="customer-name" type="text" autocomplete="name" placeholder="Your full name"></label>
+            <label><span>Mobile number *</span><input id="customer-mobile" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10–12 digits"></label>
+            <label class="email-field"><span>Email <small>(optional)</small></span><input id="customer-email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+          </div>
+          <fieldset class="membership-field"><legend>Membership status *</legend><label><input type="radio" name="membership" value="Member"> Member</label><label><input type="radio" name="membership" value="Non-Member"> Non-Member</label></fieldset>
+        </section>
+
+        <div class="show-controls">
+          <label><span class="field-label">Show date</span><input id="show-date" type="date"></label>
+          <button id="new-day" class="new-day" type="button">↻ New day / Refresh</button>
+        </div>
+
+        <section class="auditorium" aria-label="Cinema seat selection">
+          <div class="screen"><span>SCREEN</span></div>
+          <div id="seat-map" class="seat-map" aria-label="Available cinema seats"></div>
+          <div class="seat-legend">
+            <span><i class="legend-dot available"></i>Available</span>
+            <span><i class="legend-dot selected"></i>Selected</span>
+            <span><i class="legend-dot booked"></i>Booked</span>
+            <span><i class="legend-dot recliner-dot"></i>Recliner</span>
+          </div>
+        </section>
+
+        <section class="selection-summary">
+          <div>
+            <p class="eyebrow">Your selection</p>
+            <h3>Selected seats</h3>
+            <p id="selected-seats">No seats selected</p>
+          </div>
+          <div class="selection-total"><span id="selected-count">0 tickets</span><strong>INR <span id="live-total">0.00</span></strong></div>
+        </section>
+
+        <div id="error" class="error" role="alert" hidden></div>
+        <button id="calculate" class="calculate-button" type="button">
+          <span>Confirm booking / Generate bill</span><span class="arrow">↗</span>
+        </button>
+      </div>
+
+      <aside class="receipt-panel" aria-live="polite">
+        <div class="receipt-topline"><span>RECEIPT PREVIEW</span><span id="receipt-id">READY</span></div>
+        <div id="empty-receipt" class="empty-receipt">
+          <div class="cinevista-seal">CV</div>
+          <p class="empty-kicker">CINEVISTA MULTIPLEX</p>
+          <h2>Your movie.<br><em>Your moment.</em></h2>
+          <p>Choose your screening and seats to prepare a premium receipt.</p>
+        </div>
+        <div id="receipt" hidden>
+          <div class="receipt-branding">
+            <div class="receipt-logo">CV</div>
+            <div><p class="eyebrow">CineVista Multiplex</p><h2>Your Movie. Your Moment.</h2></div>
+          </div>
+          <div class="receipt-meta">
+            <span>BOOKING ID <strong id="receipt-number">CVM-000000-000</strong></span>
+            <span><strong id="booking-date">--</strong> · <strong id="booking-time">--</strong></span>
+          </div>
+          <div class="customer-receipt"><p class="eyebrow">Customer details</p><strong id="receipt-customer-name">--</strong><span id="receipt-customer-contact">--</span><span id="receipt-customer-membership">--</span></div>
+          <div class="movie-summary">
+            <div><p class="eyebrow">Now screening</p><h2 id="movie-name">Interstellar</h2><p id="movie-genre" class="genre-label">Sci-Fi</p></div>
+            <div class="movie-facts"><span>DATE <strong id="show-date-receipt">--</strong></span><span>SHOW <strong id="show-time">7:30 PM</strong></span><span>TICKETS <strong id="ticket-count">0 tickets</strong></span><span>STATUS <strong id="payment-status">Payment pending</strong></span></div>
+          </div>
+          <div class="seat-receipt"><span>SEATS</span><strong id="receipt-seats">--</strong><small id="receipt-categories">--</small></div>
+          <div class="ticket-heading"><span>SEAT TIER / TICKETS</span><span>AMOUNT</span></div>
+          <div id="line-items" class="line-items"></div>
+          <div class="receipt-divider"></div>
+          <div class="calculation-rows">
+            <div><span>Base ticket total</span><strong>INR <span id="base-ticket-total">0.00</span></strong></div>
+            <div class="discount"><span>Festival discount</span><strong>− INR <span id="festival-discount">0.00</span></strong></div>
+            <div class="discount"><span>Member discount</span><strong>− INR <span id="member-discount">0.00</span></strong></div>
+            <div><span>Discounted subtotal</span><strong>INR <span id="discounted-subtotal">0.00</span></strong></div>
+            <div><span>Convenience fee</span><strong>INR <span id="convenience-fee">0.00</span></strong></div>
+            <div><span>GST <small>(18%)</small></span><strong>INR <span id="gst">0.00</span></strong></div>
+          </div>
+          <div class="total-row"><span>Final payable amount</span><strong>INR <span id="final-total">0.00</span></strong></div>
+          <div class="experience"><span class="experience-icon" id="experience-icon">✦</span><span><strong>Great Choice for Your Movie Night!</strong><small><span id="experience-label">Mind Bending</span> · A perfect match for tonight.</small></span></div>
+          <p class="thank-you">Thank you for choosing CineVista Multiplex.<br>Enjoy your movie!</p>
+          <div class="receipt-actions"><button id="print-receipt" class="print-receipt" type="button">Print Receipt <span>↗</span></button><button id="new-booking" class="new-booking" type="button">New booking</button></div>
+        </div>
+      </aside>
+    </section>
+
+    <footer><span>PRICES IN INR · ALL AMOUNTS INCLUDE PAISA PRECISION</span><span>GST calculated after discounts + fee</span></footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
