@@ -19,6 +19,7 @@ class SeatTier:
 class PricingConfig:
     tiers: Mapping[str, SeatTier]
     festival_discount_paise: int = 0
+    festival_discount_basis_points: int = 0
     member_discount_basis_points: int = 0
     member_discount_cap_paise: int = 0
     convenience_fee_paise: int = 0
@@ -65,6 +66,7 @@ def calculate_booking(
     """Calculate a booking in this order: tickets, discounts, fee, then GST."""
     for field_name in (
         "festival_discount_paise",
+        "festival_discount_basis_points",
         "member_discount_basis_points",
         "member_discount_cap_paise",
         "convenience_fee_paise",
@@ -74,6 +76,8 @@ def calculate_booking(
 
     if config.member_discount_basis_points > 10000:
         raise PricingError("member discount cannot exceed 100 percent")
+    if config.festival_discount_basis_points > 10000:
+        raise PricingError("festival discount cannot exceed 100 percent")
     if config.gst_basis_points > 10000:
         raise PricingError("GST cannot exceed 100 percent")
 
@@ -103,7 +107,8 @@ def calculate_booking(
     if ticket_count == 0:
         raise PricingError("at least one ticket is required")
 
-    festival_discount = min(config.festival_discount_paise, base_total)
+    festival_percentage_discount = _percentage_paise(base_total, config.festival_discount_basis_points)
+    festival_discount = min(config.festival_discount_paise + festival_percentage_discount, base_total)
     after_festival = base_total - festival_discount
 
     member_discount = 0

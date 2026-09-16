@@ -1,0 +1,22 @@
+{
+  "history": [
+    {
+      "filename": "messy-seat-prices.csv",
+      "total_rows": 12,
+      "imported": 4,
+      "deduplicated": 5,
+      "rejected": 3,
+      "conflicts_count": 0,
+      "status": "Completed with warnings"
+    },
+    {
+      "filename": "messy-seat-prices.csv",
+      "total_rows": 12,
+      "imported": 4,
+      "deduplicated": 5,
+      "rejected": 3,
+      "conflicts_count": 0,
+      "status": "Completed with warnings"
+    }
+  ]
+}

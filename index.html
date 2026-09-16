@@ -19,8 +19,21 @@
           <small>MULTIPLEX / BILLING DESK</small>
         </span>
       </a>
-      <div class="status"><span class="status-dot"></span> Counter online</div>
+      <div class="topbar-actions"><div class="status"><span class="status-dot"></span> Counter online</div><button id="manage-pricing" class="manage-pricing" type="button">⚙ Manage Pricing &amp; Offers</button></div>
     </header>
+
+    <section id="pricing-panel" class="pricing-panel" hidden aria-labelledby="pricing-panel-title">
+      <div class="pricing-panel-heading"><div><p class="eyebrow">Operator controls</p><h2 id="pricing-panel-title">Pricing &amp; offers management</h2><p>Changes are saved to the same configuration used by the customer bill.</p></div><button id="close-pricing" class="panel-close" type="button" aria-label="Close pricing management">×</button></div>
+      <div id="pricing-panel-error" class="panel-error" hidden></div>
+      <div id="pricing-panel-success" class="panel-success" hidden></div>
+      <div class="pricing-panel-grid">
+        <section class="pricing-section"><p class="eyebrow">Default seat pricing</p><h3>Category prices</h3><div class="pricing-fields"><label>Silver <input id="manage-silver" type="number" min="0" step="0.01"></label><label>Gold <input id="manage-gold" type="number" min="0" step="0.01"></label><label>Recliner <input id="manage-recliner" type="number" min="0" step="0.01"></label></div></section>
+        <section class="pricing-section"><p class="eyebrow">Customer rules</p><h3>Fees, tax &amp; membership</h3><div class="pricing-fields"><label>Member discount % <input id="manage-member-rate" type="number" min="0" max="100" step="0.01"></label><label>Member cap <input id="manage-member-cap" type="number" min="0" step="0.01"></label><label>Convenience fee / ticket <input id="manage-fee" type="number" min="0" step="0.01"></label><label>GST % <input id="manage-gst" type="number" min="0" max="100" step="0.01"></label></div></section>
+        <section class="pricing-section wide-section"><p class="eyebrow">Movie-specific pricing</p><h3>Demand &amp; discount eligibility</h3><div class="manage-movie-row"><label>Movie <select id="manage-movie"></select></label><label>Demand <select id="manage-demand"><option>Highly Demanded</option><option>Normal</option><option>Low Demand</option></select></label><label class="manage-checkbox"><input id="manage-discount-eligible" type="checkbox"> Festival discount enabled</label></div><div class="pricing-fields"><label>Silver <input id="manage-movie-silver" type="number" min="0" step="0.01"></label><label>Gold <input id="manage-movie-gold" type="number" min="0" step="0.01"></label><label>Recliner <input id="manage-movie-recliner" type="number" min="0" step="0.01"></label><label>Discount reason <input id="manage-discount-reason" type="text" placeholder="Reason shown on receipt"></label></div></section>
+        <section class="pricing-section wide-section"><p class="eyebrow">Festival management</p><h3>Active offer</h3><div class="manage-movie-row"><label>Festival / offer <select id="manage-offer"></select></label><label>Type <select id="manage-offer-type"><option value="flat">Flat amount</option><option value="percentage">Percentage</option></select></label><label>Value <input id="manage-offer-value" type="number" min="0" step="0.01"></label><label class="manage-checkbox"><input id="manage-offer-active" type="checkbox"> Active</label></div><div class="pricing-fields"><label>Start date <input id="manage-offer-start" type="date"></label><label>End date <input id="manage-offer-end" type="date"></label></div><div id="manage-offer-movies" class="offer-movies"></div></section>
+      </div>
+      <div class="pricing-panel-actions"><button id="cancel-pricing" class="secondary-action" type="button">Cancel</button><button id="save-pricing" class="primary-action" type="button">Save Changes</button></div>
+    </section>
 
     <section class="intro">
       <div>
@@ -128,7 +141,7 @@
             <div class="discount"><span>Member discount</span><strong>− INR <span id="member-discount">0.00</span></strong></div>
             <div><span>Discounted subtotal</span><strong>INR <span id="discounted-subtotal">0.00</span></strong></div>
             <div><span>Convenience fee</span><strong>INR <span id="convenience-fee">0.00</span></strong></div>
-            <div><span>GST <small>(18%)</small></span><strong>INR <span id="gst">0.00</span></strong></div>
+            <div><span>GST <small id="gst-label">(configured)</small></span><strong>INR <span id="gst">0.00</span></strong></div>
           </div>
           <div class="total-row"><span>Final payable amount</span><strong>INR <span id="final-total">0.00</span></strong></div>
           <div class="experience"><span class="experience-icon" id="experience-icon">✦</span><span><strong>Great Choice for Your Movie Night!</strong><small><span id="experience-label">Mind Bending</span> · A perfect match for tonight.</small></span></div>

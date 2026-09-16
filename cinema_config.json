@@ -1,0 +1,150 @@
+{
+  "settings": {
+    "member_discount_basis_points": 1000,
+    "member_discount_cap_paise": 5000,
+    "convenience_fee_paise": 300,
+    "gst_basis_points": 1800
+  },
+  "categories": {
+    "Silver": {
+      "price_paise": 18000,
+      "rows": [
+        "A",
+        "B",
+        "C"
+      ],
+      "seats_per_row": 7,
+      "active": true
+    },
+    "Gold": {
+      "price_paise": 25000,
+      "rows": [
+        "D",
+        "E",
+        "F"
+      ],
+      "seats_per_row": 7,
+      "active": true
+    },
+    "Recliner": {
+      "price_paise": 45000,
+      "rows": [
+        "G",
+        "H"
+      ],
+      "seats_per_row": 7,
+      "active": true
+    },
+    "Premium": {
+      "price_paise": 55000,
+      "rows": [
+        "I"
+      ],
+      "seats_per_row": 7,
+      "active": false
+    }
+  },
+  "movies": [
+    {
+      "id": "interstellar",
+      "name": "Interstellar",
+      "genre": "Sci-Fi",
+      "language": "English",
+      "duration": "2h 49m",
+      "demand": "Highly Demanded",
+      "status": "Active",
+      "experience": "Mind Bending",
+      "active": true,
+      "prices": {
+        "Silver": 18000,
+        "Gold": 29000,
+        "Recliner": 45000,
+        "Premium": 55000
+      },
+      "discount_eligible": true,
+      "discount_reason": "festival"
+    },
+    {
+      "id": "midnight-run",
+      "name": "Midnight Run",
+      "genre": "Thriller",
+      "language": "English",
+      "duration": "2h 05m",
+      "demand": "Highly Demanded",
+      "status": "Active",
+      "experience": "Edge of Your Seat",
+      "active": true,
+      "prices": {
+        "Silver": 18000,
+        "Gold": 25000,
+        "Recliner": 45000,
+        "Premium": 55000
+      }
+    },
+    {
+      "id": "the-last-laugh",
+      "name": "The Last Laugh",
+      "genre": "Comedy",
+      "language": "Hindi",
+      "duration": "1h 55m",
+      "demand": "Low Demand",
+      "status": "Active",
+      "experience": "Feel Good",
+      "active": true,
+      "prices": {
+        "Silver": 18000,
+        "Gold": 25000,
+        "Recliner": 45000,
+        "Premium": 55000
+      }
+    }
+  ],
+  "shows": [
+    {
+      "id": "show-1",
+      "movie_id": "interstellar",
+      "date": "2026-09-16",
+      "time": "7:30 PM",
+      "auditorium": "Screen 1",
+      "active": true,
+      "price_overrides": {}
+    },
+    {
+      "id": "show-2",
+      "movie_id": "midnight-run",
+      "date": "2026-09-16",
+      "time": "9:45 PM",
+      "auditorium": "Screen 1",
+      "active": true,
+      "price_overrides": {}
+    },
+    {
+      "id": "show-3",
+      "movie_id": "the-last-laugh",
+      "date": "2026-09-17",
+      "time": "6:15 PM",
+      "auditorium": "Screen 1",
+      "active": true,
+      "price_overrides": {}
+    }
+  ],
+  "offers": [
+    {
+      "id": "diwali",
+      "name": "Diwali Offer",
+      "start_date": "2026-09-01",
+      "end_date": "2026-12-31",
+      "discount_paise": 10000,
+      "discount_basis_points": 0,
+      "max_discount_paise": 10000,
+      "active": true,
+      "applicable_movies": [
+        "interstellar",
+        "the-last-laugh"
+      ],
+      "excluded_movies": {
+        "midnight-run": "Highly Demanded - Discount Not Applicable"
+      }
+    }
+  ]
+}

@@ -47,6 +47,16 @@ class PricingEngineTests(unittest.TestCase):
 
         self.assertEqual(bill.member_discount_paise, 1000)
 
+    def test_festival_percentage_discount(self) -> None:
+        config = PricingConfig(
+            tiers={"Gold": SeatTier("Gold", 100000, 2)},
+            festival_discount_basis_points=1000,
+        )
+
+        bill = calculate_booking({"Gold": 1}, config)
+
+        self.assertEqual(bill.festival_discount_paise, 10000)
+
     def test_rejects_empty_booking(self) -> None:
         with self.assertRaisesRegex(PricingError, "at least one ticket"):
             calculate_booking({}, self.config)

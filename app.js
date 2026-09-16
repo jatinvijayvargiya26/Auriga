@@ -7,7 +7,9 @@ const movieSelect = document.querySelector('#movie');
 const showDateInput = document.querySelector('#show-date');
 const newDayButton = document.querySelector('#new-day');
 
-const tierPrices = { Silver: 20000, Gold: 30000, Recliner: 50000 };
+let tierPrices = {};
+let cinemaConfig;
+let editableConfig;
 const selectedSeats = new Set();
 let seatData = new Map();
 let bookedSeats = new Set();
@@ -19,6 +21,121 @@ function localDate(offset = 0) {
 }
 
 showDateInput.value = localStorage.getItem('cinevista-show-date') || localDate();
+
+async function loadConfig() {
+  const response = await fetch('/api/config');
+  if (!response.ok) throw new Error('Unable to load cinema configuration');
+  cinemaConfig = await response.json();
+  movieSelect.innerHTML = cinemaConfig.movies.filter((movie) => movie.active !== false).map((movie) => `<option value="${movie.id}">${movie.name} · ${movie.genre}</option>`).join('');
+  setMoviePrices();
+}
+
+const paiseToRupees = (value) => (Number(value || 0) / 100).toFixed(2);
+const rupeesToPaise = (value) => Math.round(Number(value || 0) * 100);
+
+function setPricingPanelMessage(id, text, visible) {
+  const element = document.querySelector(`#${id}`);
+  element.textContent = text;
+  element.hidden = !visible;
+}
+
+function renderManagedMovie() {
+  const movie = editableConfig.movies.find((item) => item.id === document.querySelector('#manage-movie').value);
+  if (!movie) return;
+  document.querySelector('#manage-demand').value = movie.demand || 'Normal';
+  document.querySelector('#manage-discount-eligible').checked = movie.discount_eligible !== false;
+  document.querySelector('#manage-movie-silver').value = paiseToRupees(movie.prices.Silver);
+  document.querySelector('#manage-movie-gold').value = paiseToRupees(movie.prices.Gold);
+  document.querySelector('#manage-movie-recliner').value = paiseToRupees(movie.prices.Recliner);
+  document.querySelector('#manage-discount-reason').value = movie.discount_reason || '';
+}
+
+function renderManagedOffer() {
+  const offer = editableConfig.offers.find((item) => item.id === document.querySelector('#manage-offer').value);
+  if (!offer) return;
+  document.querySelector('#manage-offer-type').value = offer.discount_basis_points ? 'percentage' : 'flat';
+  document.querySelector('#manage-offer-value').value = offer.discount_basis_points ? offer.discount_basis_points / 100 : paiseToRupees(offer.discount_paise);
+  document.querySelector('#manage-offer-active').checked = offer.active;
+  document.querySelector('#manage-offer-start').value = offer.start_date;
+  document.querySelector('#manage-offer-end').value = offer.end_date;
+  document.querySelector('#manage-offer-movies').innerHTML = editableConfig.movies.map((movie) => `<label><input type="checkbox" data-offer-movie="${movie.id}" ${offer.applicable_movies?.includes(movie.id) ? 'checked' : ''}> ${movie.name}${offer.excluded_movies?.[movie.id] ? ` <small>${offer.excluded_movies[movie.id]}</small>` : ''}</label>`).join('');
+}
+
+function renderPricingPanel() {
+  const settings = editableConfig.settings;
+  ['Silver', 'Gold', 'Recliner'].forEach((tier) => { document.querySelector(`#manage-${tier.toLowerCase()}`).value = paiseToRupees(editableConfig.categories[tier].price_paise); });
+  document.querySelector('#manage-member-rate').value = settings.member_discount_basis_points / 100;
+  document.querySelector('#manage-member-cap').value = paiseToRupees(settings.member_discount_cap_paise);
+  document.querySelector('#manage-fee').value = paiseToRupees(settings.convenience_fee_paise);
+  document.querySelector('#manage-gst').value = settings.gst_basis_points / 100;
+  document.querySelector('#manage-movie').innerHTML = editableConfig.movies.map((movie) => `<option value="${movie.id}">${movie.name}</option>`).join('');
+  document.querySelector('#manage-offer').innerHTML = editableConfig.offers.length ? editableConfig.offers.map((offer) => `<option value="${offer.id}">${offer.name}</option>`).join('') : '<option value="">No offers configured</option>';
+  renderManagedMovie();
+  renderManagedOffer();
+}
+
+function collectPricingPanel() {
+  const settings = editableConfig.settings;
+  settings.member_discount_basis_points = Math.round(Number(document.querySelector('#manage-member-rate').value) * 100);
+  settings.member_discount_cap_paise = rupeesToPaise(document.querySelector('#manage-member-cap').value);
+  settings.convenience_fee_paise = rupeesToPaise(document.querySelector('#manage-fee').value);
+  settings.gst_basis_points = Math.round(Number(document.querySelector('#manage-gst').value) * 100);
+  const defaultPrices = Object.fromEntries(['Silver', 'Gold', 'Recliner'].map((tier) => [tier, rupeesToPaise(document.querySelector(`#manage-${tier.toLowerCase()}`).value)]));
+  Object.entries(defaultPrices).forEach(([tier, price]) => { editableConfig.categories[tier].price_paise = price; });
+  editableConfig.movies.forEach((item) => { Object.assign(item.prices, defaultPrices); });
+  const movie = editableConfig.movies.find((item) => item.id === document.querySelector('#manage-movie').value);
+  if (movie) {
+    movie.demand = document.querySelector('#manage-demand').value;
+    movie.discount_eligible = document.querySelector('#manage-discount-eligible').checked;
+    movie.discount_reason = document.querySelector('#manage-discount-reason').value.trim();
+    movie.prices.Silver = rupeesToPaise(document.querySelector('#manage-movie-silver').value);
+    movie.prices.Gold = rupeesToPaise(document.querySelector('#manage-movie-gold').value);
+    movie.prices.Recliner = rupeesToPaise(document.querySelector('#manage-movie-recliner').value);
+  }
+  const offer = editableConfig.offers.find((item) => item.id === document.querySelector('#manage-offer').value);
+  if (offer) {
+    const percentage = document.querySelector('#manage-offer-type').value === 'percentage';
+    offer.discount_paise = percentage ? 0 : rupeesToPaise(document.querySelector('#manage-offer-value').value);
+    offer.discount_basis_points = percentage ? Math.round(Number(document.querySelector('#manage-offer-value').value) * 100) : 0;
+    offer.active = document.querySelector('#manage-offer-active').checked;
+    offer.start_date = document.querySelector('#manage-offer-start').value;
+    offer.end_date = document.querySelector('#manage-offer-end').value;
+    offer.applicable_movies = [...document.querySelectorAll('[data-offer-movie]:checked')].map((input) => input.dataset.offerMovie);
+  }
+}
+
+async function openPricingPanel() {
+  editableConfig = JSON.parse(JSON.stringify(cinemaConfig));
+  renderPricingPanel();
+  document.querySelector('#pricing-panel').hidden = false;
+  setPricingPanelMessage('pricing-panel-error', '', false);
+  setPricingPanelMessage('pricing-panel-success', '', false);
+}
+
+document.querySelector('#manage-pricing').addEventListener('click', openPricingPanel);
+document.querySelector('#close-pricing').addEventListener('click', () => { document.querySelector('#pricing-panel').hidden = true; });
+document.querySelector('#cancel-pricing').addEventListener('click', () => { document.querySelector('#pricing-panel').hidden = true; });
+document.querySelector('#manage-movie').addEventListener('change', renderManagedMovie);
+document.querySelector('#manage-offer').addEventListener('change', renderManagedOffer);
+document.querySelector('#save-pricing').addEventListener('click', async () => {
+  try {
+    collectPricingPanel();
+    const response = await fetch('/api/admin/config', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(editableConfig) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Unable to save pricing settings');
+    cinemaConfig = result;
+    setMoviePrices();
+    updateSelectionSummary();
+    setPricingPanelMessage('pricing-panel-success', '✓ Pricing settings updated successfully. New bookings use the saved rules.', true);
+  } catch (error) {
+    setPricingPanelMessage('pricing-panel-error', error.message, true);
+  }
+});
+
+function setMoviePrices() {
+  const movie = cinemaConfig.movies.find((item) => item.id === movieSelect.value);
+  tierPrices = movie ? movie.prices : {};
+}
 
 function setText(id, value) {
   const element = document.querySelector(`#${id}`);
@@ -34,19 +151,27 @@ function roundedPercentage(paise, basisPoints) {
 }
 
 function calculateEstimate() {
+  const settings = cinemaConfig?.settings || {};
+  const movie = cinemaConfig?.movies.find((item) => item.id === movieSelect.value);
+  const offer = cinemaConfig?.offers.find((item) => item.active
+    && item.start_date <= showDateInput.value && showDateInput.value <= item.end_date
+    && (!item.applicable_movies?.length || item.applicable_movies.includes(movie?.id))
+    && !item.excluded_movies?.[movie?.id]);
   const baseTotal = [...selectedSeats].reduce((total, seatId) => (
     total + tierPrices[seatData.get(seatId).tier]
   ), 0);
-  const festivalDiscount = Math.min(10000, baseTotal);
+  const festivalDiscount = Math.min(Number(offer?.discount_paise || 0), baseTotal);
   const afterFestival = baseTotal - festivalDiscount;
   const memberDiscount = document.querySelector('input[name="membership"]:checked')?.value === 'Member'
-    ? Math.min(roundedPercentage(afterFestival, 1000), 5000, afterFestival)
+    ? Math.min(roundedPercentage(afterFestival, Number(settings.member_discount_basis_points || 0)), Number(settings.member_discount_cap_paise || 0), afterFestival)
     : 0;
   const subtotal = afterFestival - memberDiscount;
-  const fee = selectedSeats.size * 300;
-  const gst = roundedPercentage(subtotal + fee, 1800);
+  const fee = selectedSeats.size * Number(settings.convenience_fee_paise || 0);
+  const gst = roundedPercentage(subtotal + fee, Number(settings.gst_basis_points || 0));
   return { total: subtotal + fee + gst };
 }
+
+movieSelect.addEventListener('change', () => { setMoviePrices(); updateSelectionSummary(); });
 
 function updateSelectionSummary() {
   const ids = [...selectedSeats].sort();
@@ -131,6 +256,7 @@ function renderReceipt(data) {
   setText('discounted-subtotal', data.discounted_subtotal);
   setText('convenience-fee', data.convenience_fee);
   setText('gst', data.gst);
+  setText('gst-label', `(${((cinemaConfig.settings.gst_basis_points || 0) / 100).toFixed(2).replace(/\.00$/, '')}%)`);
   setText('final-total', data.final_booking_total);
   document.querySelector('#line-items').innerHTML = data.line_items.map((item) => `
     <div class="line-item">
@@ -217,7 +343,7 @@ newDayButton.addEventListener('click', () => {
   loadSeats().catch((error) => { errorBox.textContent = error.message; errorBox.hidden = false; });
 });
 
-loadSeats().catch((error) => {
+loadConfig().then(loadSeats).catch((error) => {
   errorBox.textContent = error.message;
   errorBox.hidden = false;
 });
