@@ -1,4 +1,4 @@
-<!-- User: my project taital is this:
+ User: my project taital is this:
 **Friday night at the multiplex
 
 The multiplex booking counter keeps mis-pricing tickets and the queue is getting angry. Seats come in tiers — Silver, Gold, Recliner — at different prices, and by showtime some tiers sell out and shouldn’t be bookable. There are offers on: a flat festival discount and a percentage off for members (capped). Every booking then adds a small per-ticket convenience fee and GST on top, and it all has to total to the exact paisa. Customers keep demanding a clear line-by-line breakup of the bill.
@@ -1458,4 +1458,4 @@ The updated website is running here:
 
 [CineVista Multiplex Billing Desk](http://127.0.0.1:8000)
 
-Made changes. -->
+Made changes.
